@@ -89,8 +89,8 @@ def make_cags(
             for i, r in 
             pwd_l[['I', 'J']].groupby("I").value_counts().reset_index().iterrows()
         }, inplace=True)
-        print(f'There are {gene_ad.var.CAG.nunique()} CAGS')
-        print("Rebuilding CAG abundance matrix")
+        logging.info(f'There are {gene_ad.var.CAG.nunique()} CAGS')
+        logging.info("Rebuilding CAG abundance matrix")
         # Rebuild CAG abd matrix
         cur_cags = list(gene_ad.var.CAG.unique())
         # Make an empty sparse LoL matrix
@@ -106,7 +106,7 @@ def make_cags(
                 :, gene_ad.var.CAG == cag
             ].sum(axis=1)
         cur_cag_abd_matrix = cur_cag_abd_matrix.tocsr()
-        print("Completed building matrix")    
+        logging.info("Completed building matrix")    
 
 
     logging.info("Making CAG AnnData")
