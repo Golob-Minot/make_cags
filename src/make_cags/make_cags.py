@@ -79,9 +79,11 @@ def make_cags(
         logging.info("Regrouping genes")    
         # Regroup genes
         cag_regrouping = {
-            r.J: r.I
-            for i, r in 
-            pwd_l[['I', 'J']].groupby("I").value_counts().reset_index().iterrows()
+            I: J
+            for (I, J) in zip(
+                pwd_l.I,
+                pwd_l.J
+            )
         }
         logging.info("... unchaining cag regroups ... ")
         cag_unchained_regroup = {
