@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import anndata as ad
 import scipy
@@ -8,6 +8,9 @@ import pynndescent
 import logging
 import time
 import argparse
+import warnings
+warnings.filterwarnings("ignore")
+
 
 def make_cags(
         gene_ad,
@@ -66,20 +69,20 @@ def make_cags(
             columns=['I', 'J', 'Distance'],
         )
         # And filter it down to remove self-to-self and distances above threshold..
-        print("Filtering down to combinable CAGs")
+        logging.info("Filtering down to combinable CAGs")
         
         pwd_l = pwd_l[
             (pwd_l.I < pwd_l.J) &
             (pwd_l.Distance <= DISTANCE_THRESHOLD)
         ]    
         
-        print(f'{len(pwd_l)} CAGs to be combined')
+        logging.info(f'{len(pwd_l)} CAGs to be combined')
         
         if len(pwd_l) == 0:
-            print("COMPLETE!")
+            logging.info("COMPLETE!")
             break
 
-        print("Regrouping genes")    
+        logging.info("Regrouping genes")    
         # Regroup genes
         gene_ad.var['CAG'].replace({
             r.J: r.I
@@ -162,7 +165,7 @@ def main():
     parser.add_argument("--logfile",
                         type=str,
                         help="""(Optional) Write log to this file.""")
-    parser.add_argument("threshold",
+    parser.add_argument("--threshold",
                         default=0.1,
                         type=float,
                         help="""Threshold cosine distance for making CAGs. Default 0.1""")
@@ -198,6 +201,7 @@ def main():
     rootLogger.addHandler(consoleHandler)
     
     logging.info("Attempting to load gene abundance H5AD")
+    
     gene_ad = ad.read_h5ad(args.input)
     
     logging.info("Starting to make CAGs")
