@@ -11,6 +11,11 @@ import argparse
 import warnings
 warnings.filterwarnings("ignore")
 
+def unchain_cag(member_cag, cag_groups):
+    rep_cag = cag_groups[member_cag]
+    while rep_cag in cag_groups:
+        rep_cag = cag_groups[rep_cag]
+    return rep_cag
 
 def make_cags(
         gene_ad,
@@ -76,7 +81,7 @@ def make_cags(
             (pwd_l.Distance <= DISTANCE_THRESHOLD)
         ]    
         
-        logging.info(f'{len(pwd_l)} CAGs to be combined')
+        logging.info(f'{len(pwd_l):,d} CAGs to be combined')
         
         if len(pwd_l) == 0:
             logging.info("COMPLETE!")
@@ -84,12 +89,24 @@ def make_cags(
 
         logging.info("Regrouping genes")    
         # Regroup genes
+        cag_regrouping = {
+            r.J: r.I
+            for i, r in 
+            pwd_l[['I', 'J']].groupby("I").value_counts().reset_index().iterrows()
+        }
+        logging.info("... unchaining cag regroups ... ")
+        cag_unchained_regroup = {
+            cag: unchain_cag(cag, cag_regrouping)
+            for cag in cag_regrouping
+        }
+        logging.info("... and now reassigning cags")
+        gene_ad.var['CAG'].replace(cag_unchained_regroup, inplace=True)        
         gene_ad.var['CAG'].replace({
             r.J: r.I
             for i, r in 
             pwd_l[['I', 'J']].groupby("I").value_counts().reset_index().iterrows()
         }, inplace=True)
-        logging.info(f'There are {gene_ad.var.CAG.nunique()} CAGS')
+        logging.info(f'There are {gene_ad.var.CAG.nunique():,d} CAGS')
         logging.info("Rebuilding CAG abundance matrix")
         # Rebuild CAG abd matrix
         cur_cags = list(gene_ad.var.CAG.unique())
