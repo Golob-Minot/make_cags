@@ -45,42 +45,31 @@ def make_cags(
 
     for itr in range(MAX_ITERATIONS):    
         # Each iteration
-        # Get the pairwise distance...
-        logging.info(f"Building ANN Index for iteration {itr+1}")
-        # Build this iteration's nn index
-        itr_nnindex = pynndescent.NNDescent(
-            cur_cag_abd_matrix,
+        logging.info(f"Finding {N_NEIGHBORS} ANN and their distances for iteration {itr+1}")
+        iter_dm = pynndescent.PyNNDescentTransformer(
             metric="cosine",
             random_state=42,
-            n_neighbors=N_NEIGHBORS,        
-        )
-        # And use it to find the nearest neighbors for the current CAGs
-        logging.info(f'Finding {N_NEIGHBORS} nearest neighbors for each CAG')
-        itr_nn = itr_nnindex.query(
+            n_neighbors=N_NEIGHBORS,    
+        ).fit_transform(
             cur_cag_abd_matrix
-        )
+        ).tocoo()
         logging.info("Converting to long format")
-        # Convert to long format
         pwd_l = pd.DataFrame(
             [
                 (
-                    cur_cags[i], # index of CAG I
-                    cur_cags[itr_nn[0][i][j]], # Index of CAG J 
-                    itr_nn[1][i][j], # Distance
+                    cur_cags[row],
+                    cur_cags[col],
+                    dist
+                ) for (row, col, dist) in zip(
+                    iter_dm.row,
+                    iter_dm.col,
+                    iter_dm.data
                 )
-                for i in range(len(itr_nn[0]))
-                for j in range(N_NEIGHBORS)
+                if row < col and dist <= DISTANCE_THRESHOLD
             ],
             columns=['I', 'J', 'Distance'],
-        )
-        # And filter it down to remove self-to-self and distances above threshold..
-        logging.info("Filtering down to combinable CAGs")
-        
-        pwd_l = pwd_l[
-            (pwd_l.I < pwd_l.J) &
-            (pwd_l.Distance <= DISTANCE_THRESHOLD)
-        ]    
-        
+        )    
+            
         logging.info(f'{len(pwd_l):,d} CAGs to be combined')
         
         if len(pwd_l) == 0:
