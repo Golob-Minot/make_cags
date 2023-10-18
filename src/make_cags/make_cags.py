@@ -100,12 +100,7 @@ def make_cags(
             for cag in cag_regrouping
         }
         logging.info("... and now reassigning cags")
-        gene_ad.var['CAG'].replace(cag_unchained_regroup, inplace=True)        
-        gene_ad.var['CAG'].replace({
-            r.J: r.I
-            for i, r in 
-            pwd_l[['I', 'J']].groupby("I").value_counts().reset_index().iterrows()
-        }, inplace=True)
+        gene_ad.var['CAG'] = gene_ad.var.CAG.apply(lambda c: cag_unchained_regroup.get(c, c))
         logging.info(f'There are {gene_ad.var.CAG.nunique():,d} CAGS')
         logging.info("Rebuilding CAG abundance matrix")
         # Rebuild CAG abd matrix
