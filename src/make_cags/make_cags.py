@@ -96,6 +96,9 @@ def make_cags(
         logging.info("Rebuilding CAG abundance matrix")
         # Rebuild CAG abd matrix
         cur_cags = list(gene_ad.var.CAG.unique())
+        cag_idx = pd.Series(
+            index=gene_ad.var.CAG
+        )
         # Make an empty sparse LoL matrix
         cur_cag_abd_matrix = scipy.sparse.lil_matrix(
             (
@@ -106,7 +109,7 @@ def make_cags(
         )
         for cag_i, cag in enumerate(cur_cags):
             cur_cag_abd_matrix[cag_i] = gene_ad.X[
-                :, gene_ad.var.CAG == cag
+                :, cag_idx.index.get_loc(cag)
             ].sum(axis=1)
         cur_cag_abd_matrix = cur_cag_abd_matrix.tocsr()
         logging.info("Completed building matrix")    
