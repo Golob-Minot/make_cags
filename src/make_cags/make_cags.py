@@ -9,6 +9,7 @@ import logging
 import time
 import argparse
 import warnings
+from scipy.spatial.distance import pdist, squareform
 warnings.filterwarnings("ignore")
 
 def unchain_cag(member_cag, cag_groups):
@@ -46,29 +47,51 @@ def make_cags(
     for itr in range(MAX_ITERATIONS):    
         # Each iteration
         logging.info(f"Finding {N_NEIGHBORS} ANN and their distances for iteration {itr+1}")
-        iter_dm = pynndescent.PyNNDescentTransformer(
-            metric="cosine",
-            random_state=42,
-            n_neighbors=N_NEIGHBORS,    
-        ).fit_transform(
-            cur_cag_abd_matrix
-        ).tocoo()
-        logging.info("Converting to long format")
-        pwd_l = pd.DataFrame(
-            [
-                (
-                    cur_cags[row],
-                    cur_cags[col],
-                    dist
-                ) for (row, col, dist) in zip(
-                    iter_dm.row,
-                    iter_dm.col,
-                    iter_dm.data
-                )
-                if row < col and dist <= DISTANCE_THRESHOLD
-            ],
-            columns=['I', 'J', 'Distance'],
-        )    
+        # A sanity check. If the number of CAGS is LESS THAN the N_NEIGHBORS parameter, just calculate the exhaustive pairwise distance
+        if cur_cag_abd_matrix.shape[0] <= N_NEIGHBORS:
+            iter_dm = pd.DataFrame(
+                squareform(pdist(
+                    cur_cag_abd_matrix.todense(),
+                    metric='cosine'
+                ))
+            )
+            pwd_l = iter_dm.melt(
+                ignore_index=False,
+                var_name='J',
+                value_name='Distance',
+            ).reset_index().rename({'index': 'I'}, axis=1)
+            pwd_l = pwd_l[
+                (pwd_l.I < pwd_l.J) &
+                (pwd_l.Distance <= DISTANCE_THRESHOLD)
+            ]
+            pwd_l['I'] = pwd_l.I.apply(lambda i: cur_cags[i])
+            pwd_l['J'] = pwd_l.J.apply(lambda j: cur_cags[j])
+        else:
+            iter_dm = pynndescent.PyNNDescentTransformer(
+                metric="cosine",
+                random_state=42,
+                n_neighbors=N_NEIGHBORS,    
+            ).fit_transform(
+                cur_cag_abd_matrix
+            )
+            iter_dm = iter_dm.tocoo()
+            
+            logging.info("Converting to long format")
+            pwd_l = pd.DataFrame(
+                [
+                    (
+                        cur_cags[row],
+                        cur_cags[col],
+                        dist
+                    ) for (row, col, dist) in zip(
+                        iter_dm.row,
+                        iter_dm.col,
+                        iter_dm.data
+                    )
+                    if row < col and dist <= DISTANCE_THRESHOLD
+                ],
+                columns=['I', 'J', 'Distance'],
+            )    
             
         logging.info(f'{len(pwd_l):,d} CAGs to be combined')
         

@@ -1,6 +1,6 @@
 [project]
 name = "make_cags"  # Required
-version = "0.0.1"  # Required
+version = "0.0.2"  # Required
 description = "Make Co-Abundant Gene groups from gene abundance in H5AD format"  # Optional
 readme = "README.md" # Optional
 
